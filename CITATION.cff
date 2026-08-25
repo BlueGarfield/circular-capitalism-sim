@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Circular Capitalism Simulator"
+abstract: >
+  Open-source agent-based economic simulator for studying tax deferral,
+  unrealized gains, wealth concentration, capital circulation, and Circular
+  Capitalism policy scenarios.
+authors:
+  - family-names: "Berba"
+    given-names: "Adam J."
+    affiliation: "BlueGarfield Venture Studios"
+version: 0.1.0
+date-released: 2026-08-24
+license: Apache-2.0
+repository-code: "https://github.com/BlueGarfield/circular-capitalism-sim"
+keywords:
+  - economics
+  - agent-based-modeling
+  - taxation
+  - capital-gains
+  - wealth-inequality
