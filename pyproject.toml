@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "circular-capitalism-sim"
+version = "0.1.0"
+description = "Open-source agent-based economic simulator for studying tax deferral, unrealized gains, wealth concentration, capital circulation, and Circular Capitalism policy scenarios."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Adam J. Berba", email = "adam@bluegarfield.com" }]
+keywords = [
+    "economics",
+    "agent-based-modeling",
+    "mesa",
+    "wealth-inequality",
+    "taxation",
+    "capital-gains",
+    "simulation",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "mesa>=3.0,<4.0",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "PyYAML>=6.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.30"]
+dev = ["pytest>=8.0", "ruff>=0.4", "streamlit>=1.30"]
+
+[project.urls]
+Homepage = "https://github.com/BlueGarfield/circular-capitalism-sim"
+Issues = "https://github.com/BlueGarfield/circular-capitalism-sim/issues"
+
+[project.scripts]
+ccsim = "circular_capitalism.runner.single:main"
+ccsim-batch = "circular_capitalism.runner.batch:main"
+ccsim-sensitivity = "circular_capitalism.runner.sensitivity:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

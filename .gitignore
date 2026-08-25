@@ -1,0 +1,31 @@
+# environments & secrets
+.env
+.env.*
+.venv/
+venv/
+*.pem
+*.key
+secrets*
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# generated outputs (keep directory, ignore contents)
+outputs/*
+!outputs/.gitkeep
+
+# streamlit
+.streamlit/secrets.toml
