@@ -1,0 +1,45 @@
+metadata:
+  name: circular_capitalism
+  description: >
+    Deferral and asset-backed liquidity remain available, but recirculation
+    mechanisms bind: a maximum deferral period, a deemed-realization
+    threshold for large deferred gains, and revenue recirculated as citizen
+    dividends, public productive investment, and community capital.
+    Behavioral responses are ENABLED so this scenario can underperform:
+    higher effective capital taxation reduces new investment, and public
+    investment productivity may be weak.
+
+simulation:
+  periods: 600
+  period_type: month
+  households: 10000
+  firms: 100
+  seed: 42
+
+policy:
+  labor_tax_rate: 0.20
+  capital_gains_tax_rate: 0.20
+  realization_probability: 0.05
+  realization_fraction: 0.25
+  maximum_deferral_years: 15
+  forced_realization_threshold: 5000000
+  asset_backed_borrowing:
+    enabled: true
+    max_ltv: 0.30
+    interest_rate: 0.04
+    minimum_collateral: 1000000
+    utilization: 0.50
+    borrowed_consumption_share: 0.70
+  recirculation:
+    citizen_dividend_share: 0.30
+    public_investment_share: 0.15
+    community_capital_share: 0.05
+
+behavior:
+  investment_tax_elasticity: 0.5
+  public_investment_productivity_multiplier: 0.02
+
+economy:
+  asset_return_annual: 0.07
+  asset_volatility_annual: 0.15
+  wage_growth_annual: 0.03
