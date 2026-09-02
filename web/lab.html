@@ -272,7 +272,7 @@ $("run").onclick=async()=>{
   for(let t=0;t<T;t++){
     scens.forEach((p,si)=>stepState(states[si],p));
     if(t%SAMPLE===0||t===T-1){
-      labels.push((t/12).toFixed(1));
+      labels.push(((t+1)/12).toFixed(1));
       scens.forEach((p,si)=>{
         const k=kpis(states[si]);
         charts.top1.data.datasets[si].data.push(k.top1);

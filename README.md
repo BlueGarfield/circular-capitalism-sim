@@ -117,6 +117,26 @@ deferred wealth stock, recirculation gap, productive investment, revenue by
 source, borrowing by cohort), scenario selectors, and policy sliders. Chart
 scales are never manipulated to exaggerate differences.
 
+## Web companions
+
+The dependency-free Chart Lab and Society View are in `web/`. Run them
+locally with:
+
+```bash
+python -m http.server 8000 --directory web
+```
+
+For GitHub Pages, complete the repository's one-time setup before running the
+`pages` workflow:
+
+1. Open **Settings > Pages**.
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+3. Open **Actions > pages** and run the workflow.
+
+The workflow verifies this prerequisite and returns an actionable error if
+Pages has not been configured. The repository `GITHUB_TOKEN` cannot create the
+initial Pages site on its own.
+
 ## Batch simulation (Monte Carlo)
 
 ```bash

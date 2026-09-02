@@ -347,7 +347,7 @@ function showInspect(i){
 }
 
 /* ---------------- loop ---------------- */
-let paused=false,acc=0;
+let paused=false,acc=0,lastFrameTs=null;
 document.getElementById("pause").onclick=e=>{paused=!paused;e.target.textContent=paused?"Play":"Pause";};
 document.getElementById("restart").onclick=()=>init();
 document.getElementById("scen").onchange=e=>{P=SCEN[+e.target.value];init();};
@@ -356,6 +356,7 @@ document.getElementById("seed").onchange=()=>init();
 
 function init(){
   S=makeState(+document.getElementById("seed").value);
+  acc=0; lastFrameTs=null;
   plots=assignPlots(S); rebuildOrder(); selected=-1; inspect.style.display="none";
 }
 const fPct=v=>(100*v).toFixed(0)+"%";
@@ -371,9 +372,11 @@ function refreshHud(){
 }
 let lastHud=0;
 function frame(ts){
+  const elapsedSeconds=lastFrameTs===null?0:(ts-lastFrameTs)/1000;
+  lastFrameTs=ts;
   const spd=+document.getElementById("speed").value;
   if(!paused&&S.t<T_MAX){
-    acc+=spd/60*2;
+    acc+=spd*2*elapsedSeconds;
     while(acc>=1){stepState(S,P);acc-=1;}
   }
   if(ts-lastHud>200){refreshHud();lastHud=ts;}
