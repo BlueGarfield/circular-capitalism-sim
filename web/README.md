@@ -1,5 +1,7 @@
 # Web companions
 
+Live: https://bluegarfield.github.io/circular-capitalism-sim/
+
 Zero-infrastructure, single-file HTML companions to the simulator. Both run a
 simplified JavaScript port of the vectorized engine (same period sequence,
 cohorts, and seeded RNG discipline) entirely in the browser.
