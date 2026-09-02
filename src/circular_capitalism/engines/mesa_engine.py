@@ -63,9 +63,7 @@ class CircularCapitalismModel(mesa.Model):
                 "deferred_wealth_concentration": lambda m: kpis.deferred_wealth_concentration(
                     unrealized_array(m.households)
                 ),
-                "government_revenue": lambda m: (
-                    m.government.labor_tax_revenue + m.government.capital_gains_tax_revenue
-                ),
+                "government_revenue": lambda m: m.government.period_revenue,
                 "public_capital_stock": lambda m: m.government.public_capital,
                 "community_capital_stock": lambda m: m.government.community_capital,
                 "household_debt": lambda m: float(sum(h.debt for h in m.households)),

@@ -9,6 +9,7 @@ import copy
 from dataclasses import replace
 
 import numpy as np
+import pytest
 
 from circular_capitalism.config import BorrowingConfig, load_scenario
 from circular_capitalism.engines.mesa_engine import CircularCapitalismModel
@@ -129,3 +130,21 @@ def test_mesa_engine_borrowing_and_deferral_mechanics():
     assert model.government.capital_gains_tax_revenue == 0.0
     assert sum(h.debt for h in model.households) > 0.0
     assert sum(max(h.unrealized_gains, 0.0) for h in model.households) > 0.0
+
+
+def test_mesa_reports_government_revenue_as_period_flow():
+    """Mesa revenue must match each period's collection, not lifetime revenue."""
+    cfg = small(load_scenario("scenarios/00_control.yaml"), periods=12, households=120)
+    model = CircularCapitalismModel(cfg)
+    period_revenue = []
+
+    for _ in range(cfg.simulation.periods):
+        model.step()
+        period_revenue.append(model.government.period_revenue)
+
+    reported = model.datacollector.get_model_vars_dataframe()["government_revenue"]
+    np.testing.assert_allclose(reported.to_numpy(), period_revenue)
+    lifetime_revenue = (
+        model.government.labor_tax_revenue + model.government.capital_gains_tax_revenue
+    )
+    assert reported.sum() == pytest.approx(lifetime_revenue)

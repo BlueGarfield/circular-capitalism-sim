@@ -35,10 +35,27 @@ curl -sf "${H[@]}" -X PUT "$API/repos/$OWNER/$REPO/topics" \
 
 echo "== push"
 git remote remove origin 2>/dev/null || true
-git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/$OWNER/$REPO.git"
-git push -u origin main
-git push -u origin "$BRANCH"
-git remote set-url origin "https://github.com/$OWNER/$REPO.git"   # scrub token from config
+git remote add origin "https://github.com/$OWNER/$REPO.git"
+
+# Keep the PAT out of .git/config. The temporary askpass helper reads the
+# token from the environment and is removed even when a push fails.
+ASKPASS=$(mktemp)
+cleanup() {
+  rm -f "$ASKPASS"
+}
+trap cleanup EXIT
+cat >"$ASKPASS" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  *Username*) printf '%s\n' "x-access-token" ;;
+  *Password*) printf '%s\n' "$GITHUB_TOKEN" ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod 700 "$ASKPASS"
+
+GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0 git push -u origin main
+GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0 git push -u origin "$BRANCH"
 
 echo "== pull request"
 PR_BODY=$(cat <<'EOF'
