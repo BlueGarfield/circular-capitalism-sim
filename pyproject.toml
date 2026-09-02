@@ -9,7 +9,7 @@ description = "Open-source agent-based economic simulator for studying tax defer
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
-authors = [{ name = "Adam J. Berba", email = "adam@bluegarfield.com" }]
+authors = [{ name = "James Aldous", email = "38841042+BlueGarfield@users.noreply.github.com" }]
 keywords = [
     "economics",
     "agent-based-modeling",

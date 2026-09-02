@@ -217,7 +217,7 @@ hard-code policy conclusions will not be merged. Code of conduct:
 
 See [CITATION.cff](CITATION.cff). Example:
 
-> Berba, A. J. (2026). *Circular Capitalism Simulator* (v0.1.1) [Computer
+> Aldous, J. (2026). *Circular Capitalism Simulator* (v0.1.1) [Computer
 > software]. https://github.com/BlueGarfield/circular-capitalism-sim
 
 ## License
