@@ -28,6 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "mesa>=3.0,<4.0",
+    "networkx>=3.0",
     "numpy>=1.26",
     "pandas>=2.0",
     "PyYAML>=6.0",

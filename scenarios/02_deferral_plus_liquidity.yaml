@@ -1,0 +1,41 @@
+metadata:
+  name: deferral_plus_liquidity
+  description: >
+    Persistent deferral plus asset-backed borrowing: wealthy households can
+    obtain liquidity against appreciating assets without triggering a
+    realization event ("buy, borrow" mechanics).
+
+simulation:
+  periods: 600
+  period_type: month
+  households: 10000
+  firms: 100
+  seed: 42
+
+policy:
+  labor_tax_rate: 0.20
+  capital_gains_tax_rate: 0.20
+  realization_probability: 0.05
+  realization_fraction: 0.25
+  maximum_deferral_years: null
+  forced_realization_threshold: null
+  asset_backed_borrowing:
+    enabled: true
+    max_ltv: 0.30
+    interest_rate: 0.04
+    minimum_collateral: 1000000
+    utilization: 0.50
+    borrowed_consumption_share: 0.70
+  recirculation:
+    citizen_dividend_share: 0.00
+    public_investment_share: 0.00
+    community_capital_share: 0.00
+
+behavior:
+  investment_tax_elasticity: 0.0
+  public_investment_productivity_multiplier: 0.0
+
+economy:
+  asset_return_annual: 0.07
+  asset_volatility_annual: 0.15
+  wage_growth_annual: 0.03
