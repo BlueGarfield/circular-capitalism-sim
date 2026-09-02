@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circular Capitalism — Society View</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  :root{--ink:#0A0D13;--panel:#121722cc;--hair:#242E40;--text:#D7DEE8;--muted:#7C8798;
+        --amber:#E8C268;--blue:#5FB4E5;--green:#57C79A;--violet:#9B8AE6;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--text);
+    font:13px/1.4 "Space Grotesk",system-ui,sans-serif;}
+  canvas#city{position:fixed;inset:0;display:block;cursor:grab;}
+  canvas#city.drag{cursor:grabbing;}
+  .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;}
+
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;gap:14px;align-items:center;
+    padding:10px 16px;background:linear-gradient(#0A0D13ee,#0A0D1300);flex-wrap:wrap;z-index:5;}
+  #hud .brand{font-weight:700;letter-spacing:-0.02em;margin-right:4px;}
+  select,button{background:#151B28;color:var(--text);border:1px solid var(--hair);
+    border-radius:7px;padding:6px 10px;font:500 12.5px "Space Grotesk",sans-serif;cursor:pointer;}
+  button:hover,select:hover{border-color:#3A465C;}
+  #hud label{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  input[type=range]{width:90px;accent-color:var(--amber);}
+  #kstrip{margin-left:auto;display:flex;gap:16px;font-family:"IBM Plex Mono",monospace;
+    font-size:11.5px;color:var(--muted);}
+  #kstrip b{display:block;color:var(--text);font-size:14px;font-weight:600;}
+
+  #legend{position:fixed;left:16px;bottom:16px;background:var(--panel);border:1px solid var(--hair);
+    border-radius:10px;padding:10px 14px;font-size:11px;color:var(--muted);backdrop-filter:blur(6px);z-index:5;}
+  #legend div{display:flex;align-items:center;gap:8px;margin:3px 0;}
+  .sw{width:10px;height:10px;border-radius:3px;flex:none;}
+
+  #inspect{position:fixed;right:16px;bottom:16px;width:230px;background:var(--panel);
+    border:1px solid var(--hair);border-radius:10px;padding:12px 14px;backdrop-filter:blur(6px);
+    display:none;z-index:5;}
+  #inspect h4{font-size:12px;margin-bottom:6px;}
+  #inspect table{width:100%;font-size:11px;}
+  #inspect td{padding:2px 0;color:var(--muted);}
+  #inspect td:last-child{text-align:right;color:var(--text);
+    font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;}
+  #note{position:fixed;bottom:2px;left:0;right:0;text-align:center;font-size:10px;color:#535E70;z-index:4;}
+</style>
+</head>
+<body>
+<canvas id="city"></canvas>
+
+<div id="hud">
+  <span class="brand">Society View</span>
+  <select id="scen">
+    <option value="0">0 · Control</option>
+    <option value="1" selected>1 · Persistent Deferral</option>
+    <option value="2">2 · Deferral + Liquidity</option>
+    <option value="3">3 · Circular Capitalism</option>
+  </select>
+  <button id="pause">Pause</button>
+  <button id="restart">Restart</button>
+  <label>speed <input type="range" id="speed" min="1" max="24" value="8"></label>
+  <label>seed <input type="range" id="seed" min="1" max="200" value="42"> <span id="seedv" class="mono">42</span></label>
+  <div id="kstrip">
+    <span>year<b id="k_year">0</b></span>
+    <span>gini<b id="k_gini">–</b></span>
+    <span>top 1%<b id="k_top1">–</b></span>
+    <span>median<b id="k_med">–</b></span>
+    <span>deferred<b id="k_dws">–</b></span>
+    <span>debt<b id="k_debt">–</b></span>
+  </div>
+</div>
+
+<div id="legend">
+  <div><span class="sw" style="background:#6E7A8F"></span> building height = wealth</div>
+  <div><span class="sw" style="background:var(--amber)"></span> amber glow = unrealized (deferred) gains</div>
+  <div><span class="sw" style="background:var(--blue)"></span> blue base band = asset-backed debt</div>
+  <div><span class="sw" style="background:#fff"></span> flash = realization (tax paid)</div>
+  <div><span class="sw" style="background:var(--green)"></span> green pulse = citizen dividend</div>
+  <div style="margin-top:5px;color:#535E70">drag to pan · wheel to zoom · click a building</div>
+</div>
+
+<div id="inspect">
+  <h4 id="i_name">Household</h4>
+  <table>
+    <tr><td>cohort</td><td id="i_coh"></td></tr>
+    <tr><td>wealth</td><td id="i_w"></td></tr>
+    <tr><td>portfolio</td><td id="i_mv"></td></tr>
+    <tr><td>unrealized</td><td id="i_u"></td></tr>
+    <tr><td>debt</td><td id="i_d"></td></tr>
+    <tr><td>income /yr</td><td id="i_inc"></td></tr>
+  </table>
+</div>
+<div id="note">Illustrative synthetic simulation under stylized, uncalibrated assumptions — not an empirical estimate of any real economy.</div>
+
+<script>
+"use strict";
+/* ---------------- seeded RNG ---------------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function gauss(rng){let u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------------- economy (mirrors the repo engine) ---------------- */
+const COHORTS=[
+ {name:"Bottom 50%", share:.50, cash:2e3,  inv:3e3,   incA:35e3, mpc:.95, sav:.80, ip:.10, roof:"#5C6B80"},
+ {name:"50–90th",    share:.40, cash:15e3, inv:12e4,  incA:80e3, mpc:.80, sav:.60, ip:.30, roof:"#4E9DC8"},
+ {name:"90–99th",    share:.09, cash:8e4,  inv:1e6,   incA:25e4, mpc:.55, sav:.40, ip:.55, roof:"#8F7ED8"},
+ {name:"Top 1%",     share:.01, cash:5e5,  inv:1.2e7, incA:9e5,  mpc:.30, sav:.20, ip:.75, roof:"#D8B45A"},
+];
+const SCEN=[
+ {rp:.60,frac:.50,cg:.20,bb:false,maxDefY:null,thr:null,div:0,  pub:0,  com:0,  el:0, pm:0},
+ {rp:.05,frac:.25,cg:.20,bb:false,maxDefY:null,thr:null,div:0,  pub:0,  com:0,  el:0, pm:0},
+ {rp:.05,frac:.25,cg:.20,bb:true, maxDefY:null,thr:null,div:0,  pub:0,  com:0,  el:0, pm:0},
+ {rp:.05,frac:.25,cg:.20,bb:true, maxDefY:15,  thr:5e6, div:.30,pub:.15,com:.05,el:.5,pm:.02},
+];
+const BB={ltv:.30,rateA:.04,minCol:1e6,util:.50,consShare:.70};
+const ECON={retA:.07,volA:.15,wageA:.03,depA:.05};
+const LTAX=.20, N=760, T_MAX=600;
+
+let S=null;      // sim state
+let P=SCEN[1];   // active policy
+function makeState(seed){
+  const s={n:N,cash:new Float64Array(N),mv:new Float64Array(N),basis:new Float64Array(N),
+    debt:new Float64Array(N),inc:new Float64Array(N),mpc:new Float64Array(N),sav:new Float64Array(N),
+    ip:new Float64Array(N),psr:new Int32Array(N),coh:new Int8Array(N),
+    rng:mulberry32(seed),gov:0,pubK:0,comK:0,t:0,
+    flash:new Float64Array(N), divPulse:0};
+  const counts=COHORTS.map(c=>Math.round(c.share*N)); counts[0]+=N-counts.reduce((a,b)=>a+b,0);
+  let i=0;
+  COHORTS.forEach((c,ci)=>{for(let k=0;k<counts[ci];k++){
+    s.cash[i]=c.cash;s.mv[i]=c.inv;s.basis[i]=c.inv;s.inc[i]=c.incA/12;
+    s.mpc[i]=c.mpc;s.sav[i]=c.sav;s.ip[i]=c.ip;s.coh[i]=ci;i++;}});
+  return s;
+}
+function stepState(s,P){
+  const n=s.n,rM=Math.pow(1+ECON.retA,1/12)-1,vM=ECON.volA/Math.sqrt(12),
+    gM=Math.pow(1+ECON.wageA,1/12)-1,pM=1-Math.pow(1-P.rp,1/12),
+    brM=Math.pow(1+BB.rateA,1/12)-1,dep=1-ECON.depA/12,
+    maxP=P.maxDefY?Math.round(P.maxDefY*12):null;
+  const budget=s.gov,divTot=P.div*budget,pub=P.pub*budget,com=P.com*budget,perCap=divTot/n;
+  s.pubK=s.pubK*dep+pub; s.comK=s.comK*dep+com; s.gov=0;
+  if(perCap>0) s.divPulse=1;
+  let totW=0; for(let i=0;i<n;i++)totW+=s.cash[i]+s.mv[i]-s.debt[i];
+  const uplift=Math.min(P.pm*s.pubK/Math.max(totW,1),.005);
+  const common=rM+vM*gauss(s.rng), invMult=Math.max(0,1-P.el*P.cg);
+  for(let i=0;i<n;i++){
+    s.cash[i]+=perCap;
+    s.inc[i]*=1+gM+uplift;
+    const net=s.inc[i]*(1-LTAX); s.gov+=s.inc[i]*LTAX; s.cash[i]+=net;
+    const cons=Math.min(s.cash[i],s.mpc[i]*(net+perCap)); s.cash[i]-=cons;
+    const buf=s.sav[i]*6*net,ni=s.ip[i]*invMult*Math.max(s.cash[i]-buf,0);
+    s.cash[i]-=ni; s.mv[i]+=ni; s.basis[i]+=ni;
+    const r=Math.max(common+0.25*vM*gauss(s.rng),-0.95); s.mv[i]*=1+r;
+    if(s.rng()<pM){
+      const pr=P.frac*s.mv[i],br=P.frac*s.basis[i],g=pr-br,t=P.cg*Math.max(g,0);
+      s.mv[i]-=pr;s.basis[i]-=br;s.cash[i]+=pr-t;s.gov+=t;s.psr[i]=0;
+      if(g>0)s.flash[i]=1;
+    } else s.psr[i]++;
+    let unr=s.mv[i]-s.basis[i];
+    if(((maxP&&s.psr[i]>=maxP)||(P.thr&&unr>P.thr))&&unr>0){
+      const owed=P.cg*unr; s.basis[i]+=unr;
+      const short=Math.max(owed-s.cash[i],0),sale=Math.min(short,s.mv[i]);
+      if(sale>0){const f=sale/s.mv[i];s.cash[i]+=f*s.mv[i];s.basis[i]-=f*s.basis[i];s.mv[i]-=sale;}
+      const t=Math.min(owed,s.cash[i]); s.cash[i]-=t; s.gov+=t; s.psr[i]=0; s.flash[i]=1;
+    }
+    if(P.bb){
+      const w=s.cash[i]+s.mv[i]-s.debt[i],cap=(w>=BB.minCol)?BB.ltv*s.mv[i]:0;
+      const nb=Math.max(BB.util*cap-s.debt[i],0);
+      s.cash[i]+=nb;s.debt[i]+=nb;
+      const ec=Math.min(BB.consShare*nb,s.cash[i]);s.cash[i]-=ec;
+      const int_=s.debt[i]*brM,paid=Math.min(int_,s.cash[i]);
+      s.cash[i]-=paid;s.debt[i]+=int_-paid;
+      const rep=Math.min(Math.max(s.debt[i]-cap,0),s.cash[i]);
+      s.cash[i]-=rep;s.debt[i]-=rep;
+    }
+  }
+  s.t++;
+}
+function computeKpis(s){
+  const n=s.n,w=new Float64Array(n);let dws=0,debt=0;
+  for(let i=0;i<n;i++){w[i]=Math.max(s.cash[i]+s.mv[i]-s.debt[i],0);
+    const u=s.mv[i]-s.basis[i]; if(u>0)dws+=u; debt+=s.debt[i];}
+  const so=Float64Array.from(w).sort(); let tot=0,gn=0;
+  for(let i=0;i<n;i++){tot+=so[i];gn+=(i+1)*so[i];}
+  const gini=tot>0?(2*gn)/(n*tot)-(n+1)/n:0;
+  const k=Math.max(1,Math.floor(n*.01));let top=0;
+  for(let i=n-k;i<n;i++)top+=so[i];
+  const med=n%2?so[(n-1)/2]:(so[n/2-1]+so[n/2])/2;
+  return{gini,top1:tot>0?top/tot:0,med,dws,debt};
+}
+
+/* ---------------- city layout: concentric iso rings, wealthy at center ---------------- */
+// grid coords in ring order (Chebyshev rings), skipping 5x5 civic plaza
+const cells=[];
+for(let ring=3;cells.length<N+50;ring++){
+  const ringCells=[];
+  for(let x=-ring;x<=ring;x++)for(let y=-ring;y<=ring;y++)
+    if(Math.max(Math.abs(x),Math.abs(y))===ring)ringCells.push([x,y]);
+  ringCells.sort((a,b)=>Math.atan2(a[1],a[0])-Math.atan2(b[1],b[0]));
+  cells.push(...ringCells);
+}
+// households sorted top1 first (innermost)
+function assignPlots(s){
+  const idx=[...Array(N).keys()].sort((a,b)=>s.coh[b]-s.coh[a]); // cohort 3 first
+  const pos=new Array(N);
+  idx.forEach((hi,k)=>pos[hi]=cells[k]);
+  return pos;
+}
+
+/* ---------------- rendering ---------------- */
+const cv=document.getElementById("city"),ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){DPR=window.devicePixelRatio||1;W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+"px";cv.style.height=H+"px";}
+addEventListener("resize",resize);resize();
+
+const cam={x:0,y:40,zoom:1};
+const TW=26,TH=13; // iso tile size
+function isoX(x,y){return (x-y)*TW/2;}
+function isoY(x,y){return (x+y)*TH/2;}
+
+let plots=null, drawOrder=null, selected=-1;
+function rebuildOrder(){
+  drawOrder=[...Array(N).keys()].sort((a,b)=>
+    (plots[a][0]+plots[a][1])-(plots[b][0]+plots[b][1]));
+}
+
+function shade(hex,f){ // lighten/darken
+  const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;
+  const m=v=>Math.max(0,Math.min(255,Math.round(v*f)));
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+function hh(v){ // wealth -> building height (log scale)
+  return Math.max(2, 7*Math.log10(Math.max(v,1)/1e3));
+}
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(W/2+cam.x, H/2+cam.y);
+  ctx.scale(cam.zoom,cam.zoom);
+
+  // ground diamonds (faint)
+  ctx.strokeStyle="#131A26"; ctx.lineWidth=0.6;
+  const span=Math.ceil(Math.sqrt(N))+8;
+  ctx.beginPath();
+  for(const [gx,gy] of cells.slice(0,N)){
+    const x=isoX(gx,gy),y=isoY(gx,gy);
+    ctx.moveTo(x,y-TH/2);ctx.lineTo(x+TW/2,y);ctx.lineTo(x,y+TH/2);ctx.lineTo(x-TW/2,y);ctx.closePath();
+  }
+  ctx.stroke();
+
+  // dividend pulse ring from plaza
+  if(S.divPulse>0){
+    ctx.strokeStyle=`rgba(87,199,154,${0.5*S.divPulse})`;
+    ctx.lineWidth=2/cam.zoom;
+    const rr=(1-S.divPulse)*span*TW*0.6+20;
+    ctx.beginPath();ctx.ellipse(0,0,rr,rr/2,0,0,Math.PI*2);ctx.stroke();
+    S.divPulse=Math.max(0,S.divPulse-0.02);
+  }
+
+  // civic plaza: government building, height = public capital
+  const gh=Math.max(4, 6*Math.log10(Math.max(S.pubK,1)/1e4+1)*4);
+  drawBuilding(0,0,gh,"#3D9E7C",2.6,0,0,false);
+  ctx.fillStyle="#57C79A";ctx.font="600 8px 'IBM Plex Mono'";
+  ctx.textAlign="center";ctx.fillText("CIVIC",0,TH*1.9);
+
+  // households, painter's order
+  for(const i of drawOrder){
+    const [gx,gy]=plots[i];
+    const wlth=S.cash[i]+S.mv[i]-S.debt[i];
+    const h=hh(wlth);
+    const unr=Math.max(S.mv[i]-S.basis[i],0);
+    const glow=S.mv[i]>0?Math.min(unr/S.mv[i],1):0;
+    const debtF=S.mv[i]>0?Math.min(S.debt[i]/S.mv[i],1):0;
+    drawBuilding(gx,gy,h,COHORTS[S.coh[i]].roof,1,glow,debtF,i===selected);
+    if(S.flash[i]>0){
+      const x=isoX(gx,gy),y=isoY(gx,gy)-h;
+      ctx.fillStyle=`rgba(255,244,214,${S.flash[i]})`;
+      ctx.beginPath();ctx.arc(x,y-6-(1-S.flash[i])*14,2.4*S.flash[i]+0.6,0,Math.PI*2);ctx.fill();
+      S.flash[i]=Math.max(0,S.flash[i]-0.045);
+    }
+  }
+  ctx.restore();
+}
+function drawBuilding(gx,gy,h,roof,scale,glow,debtF,sel){
+  const x=isoX(gx,gy),y=isoY(gx,gy);
+  const hw=TW/2*0.72*scale, hd=TH/2*0.72*scale;
+  if(glow>0.02){
+    const g=ctx.createRadialGradient(x,y,1,x,y,hw*2.6);
+    g.addColorStop(0,`rgba(232,194,104,${0.34*glow})`);
+    g.addColorStop(1,"rgba(232,194,104,0)");
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(x,y,hw*2.6,hd*2.6,0,0,Math.PI*2);ctx.fill();
+  }
+  // left face
+  ctx.fillStyle=shade(roof,0.42);
+  ctx.beginPath();ctx.moveTo(x-hw,y);ctx.lineTo(x,y+hd);ctx.lineTo(x,y+hd-h);ctx.lineTo(x-hw,y-h);ctx.closePath();ctx.fill();
+  // right face
+  ctx.fillStyle=shade(roof,0.62);
+  ctx.beginPath();ctx.moveTo(x+hw,y);ctx.lineTo(x,y+hd);ctx.lineTo(x,y+hd-h);ctx.lineTo(x+hw,y-h);ctx.closePath();ctx.fill();
+  // debt band at base
+  if(debtF>0.02){
+    const bh=Math.min(h*debtF,h);
+    ctx.fillStyle="rgba(95,180,229,0.85)";
+    ctx.beginPath();ctx.moveTo(x-hw,y);ctx.lineTo(x,y+hd);ctx.lineTo(x,y+hd-bh);ctx.lineTo(x-hw,y-bh);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(x+hw,y);ctx.lineTo(x,y+hd);ctx.lineTo(x,y+hd-bh);ctx.lineTo(x+hw,y-bh);ctx.closePath();
+    ctx.fillStyle="rgba(95,180,229,0.55)";ctx.fill();
+  }
+  // roof
+  ctx.fillStyle=sel?"#FFFFFF":roof;
+  ctx.beginPath();ctx.moveTo(x,y-h-hd);ctx.lineTo(x+hw,y-h);ctx.lineTo(x,y-h+hd);ctx.lineTo(x-hw,y-h);ctx.closePath();ctx.fill();
+}
+
+/* ---------------- interaction ---------------- */
+let dragging=false,lx=0,ly=0,moved=0;
+cv.addEventListener("pointerdown",e=>{dragging=true;moved=0;lx=e.clientX;ly=e.clientY;cv.classList.add("drag");});
+addEventListener("pointerup",e=>{
+  cv.classList.remove("drag");
+  if(dragging&&moved<5)pick(e.clientX,e.clientY);
+  dragging=false;
+});
+addEventListener("pointermove",e=>{if(!dragging)return;
+  cam.x+=e.clientX-lx;cam.y+=e.clientY-ly;moved+=Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly);
+  lx=e.clientX;ly=e.clientY;});
+cv.addEventListener("wheel",e=>{e.preventDefault();
+  cam.zoom=Math.max(0.35,Math.min(3.2,cam.zoom*(e.deltaY<0?1.1:0.9)));},{passive:false});
+function pick(px,py){
+  const wx=(px-W/2-cam.x)/cam.zoom, wy=(py-H/2-cam.y)/cam.zoom;
+  let best=-1,bd=1e9;
+  for(let i=0;i<N;i++){
+    const [gx,gy]=plots[i];
+    const dx=wx-isoX(gx,gy), dy=wy-(isoY(gx,gy)-hh(S.cash[i]+S.mv[i]-S.debt[i])/2);
+    const d=dx*dx+dy*dy*3;
+    if(d<bd){bd=d;best=i;}
+  }
+  if(bd<400){selected=best;showInspect(best);}else{selected=-1;inspect.style.display="none";}
+}
+const inspect=document.getElementById("inspect");
+const fUsd=v=>"$"+Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(v);
+function showInspect(i){
+  inspect.style.display="block";
+  document.getElementById("i_name").textContent="Household #"+i;
+  document.getElementById("i_coh").textContent=COHORTS[S.coh[i]].name;
+  document.getElementById("i_w").textContent=fUsd(S.cash[i]+S.mv[i]-S.debt[i]);
+  document.getElementById("i_mv").textContent=fUsd(S.mv[i]);
+  document.getElementById("i_u").textContent=fUsd(Math.max(S.mv[i]-S.basis[i],0));
+  document.getElementById("i_d").textContent=fUsd(S.debt[i]);
+  document.getElementById("i_inc").textContent=fUsd(S.inc[i]*12);
+}
+
+/* ---------------- loop ---------------- */
+let paused=false,acc=0;
+document.getElementById("pause").onclick=e=>{paused=!paused;e.target.textContent=paused?"Play":"Pause";};
+document.getElementById("restart").onclick=()=>init();
+document.getElementById("scen").onchange=e=>{P=SCEN[+e.target.value];init();};
+document.getElementById("seed").oninput=e=>{document.getElementById("seedv").textContent=e.target.value;};
+document.getElementById("seed").onchange=()=>init();
+
+function init(){
+  S=makeState(+document.getElementById("seed").value);
+  plots=assignPlots(S); rebuildOrder(); selected=-1; inspect.style.display="none";
+}
+const fPct=v=>(100*v).toFixed(0)+"%";
+function refreshHud(){
+  const k=computeKpis(S);
+  document.getElementById("k_year").textContent=Math.floor(S.t/12);
+  document.getElementById("k_gini").textContent=k.gini.toFixed(2);
+  document.getElementById("k_top1").textContent=fPct(k.top1);
+  document.getElementById("k_med").textContent=fUsd(k.med);
+  document.getElementById("k_dws").textContent=fUsd(k.dws);
+  document.getElementById("k_debt").textContent=fUsd(k.debt);
+  if(selected>=0)showInspect(selected);
+}
+let lastHud=0;
+function frame(ts){
+  const spd=+document.getElementById("speed").value;
+  if(!paused&&S.t<T_MAX){
+    acc+=spd/60*2;
+    while(acc>=1){stepState(S,P);acc-=1;}
+  }
+  if(ts-lastHud>200){refreshHud();lastHud=ts;}
+  draw();
+  requestAnimationFrame(frame);
+}
+init();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
