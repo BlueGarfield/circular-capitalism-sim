@@ -21,6 +21,7 @@ echo "== repo"
 if curl -sf "${H[@]}" "$API/repos/$OWNER/$REPO" >/dev/null; then
   echo "exists: $OWNER/$REPO (inspecting, not overwriting)"
   git ls-remote "https://github.com/$OWNER/$REPO" | head -3
+  curl -sf "${H[@]}" -X PATCH "$API/repos/$OWNER/$REPO" -d '{"description":"Open-source agent-based economic simulator for studying tax deferral, unrealized gains, wealth concentration, capital circulation, and Circular Capitalism policy scenarios.","private":false}' >/dev/null || true
 else
   # try org endpoint first, fall back to user endpoint
   BODY='{"name":"'$REPO'","description":"Open-source agent-based economic simulator for studying tax deferral, unrealized gains, wealth concentration, capital circulation, and Circular Capitalism policy scenarios.","private":false,"has_issues":true,"has_wiki":false}'
@@ -29,7 +30,8 @@ else
   echo "created public repo $OWNER/$REPO"
 fi
 curl -sf "${H[@]}" -X PUT "$API/repos/$OWNER/$REPO/topics" \
-  -d '{"names":["circular-economy","economics","agent-based-modeling","mesa","python","wealth-inequality","taxation","capital-gains","economic-simulation","open-source"]}' >/dev/null
+  -d '{"names":["circular-economy","economics","agent-based-modeling","mesa","python","wealth-inequality","taxation","capital-gains","economic-simulation","open-source"]}' >/dev/null \
+  || echo "(topics skipped — set manually in repo settings)"
 
 echo "== push"
 git remote remove origin 2>/dev/null || true
