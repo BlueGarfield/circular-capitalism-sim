@@ -241,15 +241,16 @@ def validate(cfg: ScenarioConfig) -> ScenarioConfig:
     if cfg.behavior.public_investment_productivity_multiplier < 0:
         raise ConfigError("behavior.public_investment_productivity_multiplier must be >= 0")
 
-    shares = sum(c.population_share for c in cfg.cohorts)
-    if abs(shares - 1.0) > 1e-6:
-        raise ConfigError(f"cohort population_share values must sum to 1.0; got {shares:.6f}")
     for c in cfg.cohorts:
+        _check_rate(f"cohort[{c.name}].population_share", c.population_share)
         _check_rate(f"cohort[{c.name}].mpc", c.mpc)
         _check_rate(f"cohort[{c.name}].savings_propensity", c.savings_propensity)
         _check_rate(f"cohort[{c.name}].investment_propensity", c.investment_propensity)
         if min(c.initial_cash, c.initial_investments, c.labor_income_annual) < 0:
             raise ConfigError(f"cohort[{c.name}] monetary values must be >= 0")
+    shares = sum(c.population_share for c in cfg.cohorts)
+    if abs(shares - 1.0) > 1e-6:
+        raise ConfigError(f"cohort population_share values must sum to 1.0; got {shares:.6f}")
     return cfg
 
 

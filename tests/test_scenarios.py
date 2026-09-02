@@ -73,6 +73,28 @@ def test_bad_cohort_shares_fail():
         from_dict(raw)
 
 
+@pytest.mark.parametrize("shares", [(-0.1, 1.1), (1.1, -0.1)])
+def test_out_of_range_cohort_share_fails_even_when_total_is_one(shares):
+    def cohort(name, population_share):
+        return {
+            "name": name,
+            "population_share": population_share,
+            "initial_cash": 1.0,
+            "initial_investments": 1.0,
+            "labor_income_annual": 1.0,
+            "mpc": 0.5,
+            "savings_propensity": 0.5,
+            "investment_propensity": 0.5,
+        }
+
+    raw = {
+        "metadata": {"name": "bad"},
+        "cohorts": [cohort("first", shares[0]), cohort("second", shares[1])],
+    }
+    with pytest.raises(ConfigError, match=r"population_share must be within \[0\.0, 1\.0\]"):
+        from_dict(raw)
+
+
 def small(cfg, periods=120, households=500, firms=10):
     return replace(
         cfg,
